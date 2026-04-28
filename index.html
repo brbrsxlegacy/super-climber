@@ -1,105 +1,483 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pixel Beast Arena</title>
-<style>
-body{margin:0;background:#87CEEB;overflow:hidden;font-family:monospace}
-canvas{display:block}
-.ui{position:fixed;top:10px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;text-shadow:2px 2px black}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Peak Climb Online - Three.js Firebase</title>
+  <style>
+    :root{
+      --bg:#07111f;
+      --panel:rgba(9,18,32,.72);
+      --panel2:rgba(255,255,255,.08);
+      --text:#eff7ff;
+      --muted:#9bb3c9;
+      --good:#67f5b5;
+      --warn:#ffd36e;
+      --bad:#ff6f91;
+      --accent:#74c0ff;
+      --line:rgba(255,255,255,.14);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      overflow:hidden;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at 50% 0%,#1c3d66 0%,#07111f 55%,#02050a 100%);
+      color:var(--text);
+      touch-action:none;
+    }
+    canvas{display:block}
+    .screen{
+      position:fixed;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:20;
+      background:
+        radial-gradient(circle at 20% 20%,rgba(116,192,255,.22),transparent 26%),
+        radial-gradient(circle at 80% 40%,rgba(103,245,181,.12),transparent 26%),
+        rgba(2,5,10,.72);
+      backdrop-filter:blur(14px);
+      padding:18px;
+    }
+    .hidden{display:none!important}
+    .card{
+      width:min(960px,100%);
+      min-height:520px;
+      border:1px solid var(--line);
+      border-radius:28px;
+      background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.055));
+      box-shadow:0 24px 80px rgba(0,0,0,.45);
+      overflow:hidden;
+      position:relative;
+    }
+    .hero{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:18px;
+      padding:34px;
+    }
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:1px solid rgba(116,192,255,.35);
+      background:rgba(116,192,255,.12);
+      color:#cdeaff;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      margin-bottom:16px;
+    }
+    h1{
+      font-size:clamp(38px,7vw,80px);
+      line-height:.92;
+      letter-spacing:-4px;
+      margin:0 0 16px;
+    }
+    p{color:var(--muted);line-height:1.55;margin:0 0 18px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+    button,input{
+      font:inherit;
+      border:0;
+      outline:0;
+    }
+    button{
+      cursor:pointer;
+      color:#06101b;
+      background:linear-gradient(135deg,#ffffff,#8fd2ff 55%,#67f5b5);
+      border-radius:16px;
+      padding:13px 18px;
+      font-weight:850;
+      box-shadow:0 12px 30px rgba(74,165,255,.22);
+      transition:.15s transform,.15s filter;
+    }
+    button:hover{transform:translateY(-1px);filter:brightness(1.06)}
+    button.secondary{
+      color:var(--text);
+      background:rgba(255,255,255,.09);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+    input{
+      width:100%;
+      color:var(--text);
+      background:rgba(0,0,0,.28);
+      border:1px solid var(--line);
+      border-radius:15px;
+      padding:13px 14px;
+      margin:8px 0;
+    }
+    .preview{
+      min-height:440px;
+      border-radius:24px;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(180deg,rgba(116,192,255,.12),rgba(255,255,255,.04)),
+        radial-gradient(circle at 50% 25%,rgba(255,255,255,.20),transparent 20%),
+        #0b1727;
+      position:relative;
+      overflow:hidden;
+    }
+    .mountain-art{
+      position:absolute;inset:auto -12% 0 -12%;height:76%;
+      background:
+        linear-gradient(135deg,transparent 35%,rgba(255,255,255,.42) 35.5%,transparent 45%),
+        linear-gradient(130deg,transparent 50%,rgba(255,255,255,.18) 50.5%,transparent 59%),
+        linear-gradient(135deg,#29445e 0 45%,#182c40 45% 100%);
+      clip-path:polygon(0 100%,20% 42%,34% 64%,49% 16%,66% 70%,82% 36%,100% 100%);
+      filter:drop-shadow(0 -24px 40px rgba(116,192,255,.12));
+    }
+    .fog{position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(7,17,31,.82) 100%)}
+    .menuGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+    .mode{
+      padding:18px;
+      border-radius:20px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.065);
+      min-height:140px;
+    }
+    .mode b{display:block;font-size:18px;margin-bottom:6px}
+    .small{font-size:13px;color:var(--muted)}
+    #hud{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:10;
+      display:none;
+    }
+    #topHud{
+      position:absolute;
+      top:12px;left:12px;right:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .pill{
+      pointer-events:auto;
+      background:rgba(3,9,16,.58);
+      border:1px solid rgba(255,255,255,.13);
+      color:var(--text);
+      border-radius:16px;
+      padding:10px 12px;
+      backdrop-filter:blur(10px);
+      box-shadow:0 12px 30px rgba(0,0,0,.22);
+      font-size:13px;
+    }
+    #centerHint{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      text-align:center;
+      pointer-events:none;
+      opacity:.86;
+      text-shadow:0 2px 14px #000;
+    }
+    .crosshair{
+      position:absolute;left:50%;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);
+      border:2px solid rgba(255,255,255,.65);border-radius:50%;
+      box-shadow:0 0 18px rgba(116,192,255,.8);
+    }
+    #staminaWrap{
+      position:absolute;left:50%;bottom:28px;transform:translateX(-50%);
+      width:min(420px,68vw);height:12px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.32);overflow:hidden;
+    }
+    #staminaBar{height:100%;width:100%;background:linear-gradient(90deg,#67f5b5,#ffd36e);border-radius:999px}
+    #mobileControls{display:none;position:absolute;inset:0;pointer-events:none}
+    .touchZone{position:absolute;bottom:28px;width:132px;height:132px;pointer-events:auto}
+    #joy{left:22px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+    #knob{position:absolute;left:43px;top:43px;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.35)}
+    .touchBtn{
+      right:22px;border-radius:24px;display:grid;grid-template-columns:1fr;gap:10px;background:transparent;
+    }
+    .touchBtn button{pointer-events:auto;padding:12px;border-radius:18px;color:var(--text);background:rgba(255,255,255,.12);border:1px solid var(--line)}
+    #toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:50;background:#08111e;border:1px solid var(--line);padding:12px 16px;border-radius:999px;display:none}
+    @media (max-width:800px){
+      .hero{grid-template-columns:1fr;padding:20px}.preview{min-height:180px}h1{letter-spacing:-2px}.menuGrid{grid-template-columns:1fr}.card{min-height:auto}.pill{font-size:12px}#mobileControls{display:block}
+    }
+  </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<div class="ui" id="ui">Yükleniyor...</div>
+  <div id="menu" class="screen">
+    <div class="card">
+      <div class="hero">
+        <div>
+          <div class="badge">🏔️ FIRST PERSON ONLINE CLIMB</div>
+          <h1>PEAK<br/>ROOMS</h1>
+          <p>Temiz ekranlı, 1. şahıs kamera ile dağa tırmanma prototipi. Tek kişi oynayabilir veya Firebase oda koduyla arkadaşlarınla aynı dağa bağlanabilirsin.</p>
+          <div class="actions">
+            <button id="loginBtn">Giriş yap</button>
+            <button class="secondary" id="guestBtn">Misafir başla</button>
+          </div>
+          <p class="small" style="margin-top:14px">Kontroller: WASD hareket, Mouse bakış, Space zıpla/tırman, Shift koş. Mobilde sol joystick + sağ butonlar.</p>
+        </div>
+        <div class="preview"><div class="mountain-art"></div><div class="fog"></div></div>
+      </div>
+    </div>
+  </div>
 
-<script>
-const canvas=document.getElementById('c');
-const ctx=canvas.getContext('2d');
-let W,H;
-function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
-addEventListener('resize',resize);resize();
+  <div id="lobby" class="screen hidden">
+    <div class="card" style="padding:28px;max-width:760px;min-height:auto">
+      <div class="badge">✅ Giriş tamam</div>
+      <h2 style="font-size:38px;margin:0 0 8px">Nasıl oynayacağız?</h2>
+      <p>Online oda açabilir, oda kodu ile katılabilir veya internetsiz tek kişilik modda başlayabilirsin.</p>
+      <input id="nameInput" maxlength="16" placeholder="Oyuncu adın" value="Barbaros" />
+      <input id="roomInput" maxlength="6" placeholder="Oda kodu örn: 482193" />
+      <div class="menuGrid">
+        <div class="mode"><b>Tek Oyuncu</b><span class="small">Firebase gerekmez, direkt dağa çık.</span><div class="actions"><button id="soloBtn">Başla</button></div></div>
+        <div class="mode"><b>Oda Kur</b><span class="small">6 haneli oda oluşturur.</span><div class="actions"><button id="createRoomBtn">Online oda kur</button></div></div>
+        <div class="mode"><b>Odaya Gir</b><span class="small">Arkadaşının kodunu yaz.</span><div class="actions"><button id="joinRoomBtn">Katıl</button></div></div>
+      </div>
+      <div class="actions"><button class="secondary" id="backBtn">Geri</button></div>
+    </div>
+  </div>
 
-let player={hp:100,max:100};
-let enemy={hp:100,max:100};
+  <div id="hud">
+    <div id="topHud">
+      <div class="pill" id="statusPill">Hazır</div>
+      <div class="pill" id="roomPill">Solo</div>
+    </div>
+    <div class="crosshair"></div>
+    <div id="centerHint">Başlamak için ekrana tıkla</div>
+    <div id="staminaWrap"><div id="staminaBar"></div></div>
+    <div id="mobileControls">
+      <div id="joy" class="touchZone"><div id="knob"></div></div>
+      <div class="touchZone touchBtn"><button id="jumpBtn">ZIPLA</button><button id="climbBtn">TUTUN</button></div>
+    </div>
+  </div>
+  <div id="toast"></div>
 
-// PIXEL DRAW SYSTEM
-function pixelRect(x,y,size,color){
- ctx.fillStyle=color;
- ctx.fillRect(Math.floor(x),Math.floor(y),size,size);
-}
+  <script type="module">
+    import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js';
+    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+    import { getDatabase, ref, set, update, onValue, onDisconnect, remove, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js';
 
-function drawPixelBeast(x,y,color1,color2){
- let s=6; // pixel size
+    const firebaseConfig = {
+      apiKey: "AIzaSyABqkhpL1SMRzRJ9GQLjjZE2IryqpAvMPw",
+      authDomain: "pixelroom-ae218.firebaseapp.com",
+      databaseURL: "https://pixelroom-ae218-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "pixelroom-ae218",
+      storageBucket: "pixelroom-ae218.firebasestorage.app",
+      messagingSenderId: "720297722320",
+      appId: "1:720297722320:web:c815edae99d1efa7ff39d5",
+      measurementId: "G-HD8901B19M"
+    };
 
- // body
- for(let i=0;i<8;i++){
-  for(let j=0;j<6;j++){
-    pixelRect(x+i*s,y+j*s,s,color1);
-  }
- }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
- // eyes
- pixelRect(x+2*s,y+2*s,s,color2);
- pixelRect(x+5*s,y+2*s,s,color2);
+    const $ = id => document.getElementById(id);
+    const menu = $('menu'), lobby = $('lobby'), hud = $('hud');
+    const statusPill = $('statusPill'), roomPill = $('roomPill'), centerHint = $('centerHint'), staminaBar = $('staminaBar');
+    let uid = null, playerName = 'Barbaros', online = false, roomCode = null, playerRef = null, roomRef = null;
+    let scene, camera, renderer, clock;
+    let player, velocity, yaw = 0, pitch = 0, stamina = 100, grounded = false, started = false;
+    let keys = {}, remotePlayers = new Map(), lastNet = 0;
+    let joystick = {x:0,y:0,active:false,id:null};
+    let jumpHeld = false, climbHeld = false;
 
- // legs
- pixelRect(x+1*s,y+6*s,s,color1);
- pixelRect(x+6*s,y+6*s,s,color1);
+    function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none',2200); }
+    function code(){ return String(Math.floor(100000 + Math.random()*900000)); }
+    function showLobby(){ menu.classList.add('hidden'); lobby.classList.remove('hidden'); }
 
- // spikes
- pixelRect(x+3*s,y-1*s,s,color2);
- pixelRect(x+4*s,y-1*s,s,color2);
-}
+    $('loginBtn').onclick = async()=>{ try{ await signInAnonymously(auth); showLobby(); }catch(e){ toast('Firebase giriş hatası: '+e.message); } };
+    $('guestBtn').onclick = ()=>showLobby();
+    $('backBtn').onclick = ()=>{ lobby.classList.add('hidden'); menu.classList.remove('hidden'); };
+    onAuthStateChanged(auth, u=>{ if(u) uid = u.uid; });
 
-function drawArena(){
- ctx.fillStyle="#6ecb63";
- ctx.fillRect(0,H*0.7,W,H*0.3);
+    $('soloBtn').onclick = ()=>startGame(false);
+    $('createRoomBtn').onclick = async()=>{ await ensureAuth(); roomCode = code(); await startGame(true, roomCode); };
+    $('joinRoomBtn').onclick = async()=>{ await ensureAuth(); const c=$('roomInput').value.trim(); if(c.length<3) return toast('Oda kodu yaz.'); await startGame(true, c); };
 
- // pixel grid effect
- for(let i=0;i<W;i+=20){
-  ctx.fillStyle="#5bbf55";
-  ctx.fillRect(i,H*0.7,2,H*0.3);
- }
-}
+    async function ensureAuth(){ if(!auth.currentUser) await signInAnonymously(auth); uid = auth.currentUser.uid; }
 
-function drawUI(){
- document.getElementById('ui').innerText =
-  "Sen HP: "+player.hp+" | Düşman HP: "+enemy.hp;
-}
+    async function startGame(isOnline, codeValue){
+      playerName = $('nameInput').value.trim() || 'Climber';
+      online = isOnline; roomCode = codeValue || null;
+      lobby.classList.add('hidden'); menu.classList.add('hidden'); hud.style.display='block';
+      initThree();
+      if(online) await connectRoom();
+      roomPill.textContent = online ? 'Oda: '+roomCode : 'Solo';
+      animate();
+    }
 
-canvas.addEventListener('click',()=>{
- let dmg=Math.floor(Math.random()*10+5);
- enemy.hp-=dmg;
- if(enemy.hp<=0){
-  enemy.hp=100;
- }
-});
+    async function connectRoom(){
+      const color = Math.floor(Math.random()*0xffffff);
+      roomRef = ref(db, 'peakRooms/'+roomCode);
+      playerRef = ref(db, 'peakRooms/'+roomCode+'/players/'+uid);
+      await update(roomRef, {updatedAt: serverTimestamp(), code: roomCode});
+      await set(playerRef, {name: playerName, color, x:0, y:4, z:14, ry:0, top:0, t:serverTimestamp()});
+      onDisconnect(playerRef).remove();
+      onValue(ref(db, 'peakRooms/'+roomCode+'/players'), snap=>{
+        const data = snap.val() || {};
+        for(const [id,p] of Object.entries(data)){
+          if(id===uid) continue;
+          if(!remotePlayers.has(id)) addRemote(id,p);
+          const r = remotePlayers.get(id);
+          r.target.set(p.x||0,p.y||2,p.z||0); r.mesh.rotation.y = p.ry||0; r.nameTag.userData.text = p.name||'Player';
+        }
+        for(const id of [...remotePlayers.keys()]) if(!data[id]){ scene.remove(remotePlayers.get(id).mesh); scene.remove(remotePlayers.get(id).nameTag); remotePlayers.delete(id); }
+      });
+    }
 
-setInterval(()=>{
- let dmg=Math.floor(Math.random()*5+2);
- player.hp-=dmg;
- if(player.hp<=0){
-  player.hp=100;
- }
-},1000);
+    function addRemote(id,p){
+      const g = new THREE.CapsuleGeometry(.42,1.0,5,10);
+      const m = new THREE.MeshStandardMaterial({color:p.color||0x74c0ff, roughness:.55});
+      const mesh = new THREE.Mesh(g,m); mesh.castShadow=true; mesh.position.set(p.x||0,p.y||2,p.z||0);
+      const tag = makeTextSprite(p.name||'Player'); tag.position.set(mesh.position.x, mesh.position.y+1.4, mesh.position.z);
+      scene.add(mesh,tag); remotePlayers.set(id,{mesh,nameTag:tag,target:mesh.position.clone()});
+    }
 
-function loop(){
- ctx.clearRect(0,0,W,H);
- drawArena();
+    function makeTextSprite(text){
+      const cvs=document.createElement('canvas'); cvs.width=256; cvs.height=64; const ctx=cvs.getContext('2d');
+      ctx.fillStyle='rgba(0,0,0,.55)'; ctx.roundRect(8,10,240,44,16); ctx.fill();
+      ctx.fillStyle='white'; ctx.font='bold 24px system-ui'; ctx.textAlign='center'; ctx.fillText(text,128,40);
+      const tex=new THREE.CanvasTexture(cvs); const mat=new THREE.SpriteMaterial({map:tex,transparent:true}); const s=new THREE.Sprite(mat); s.scale.set(2.2,.55,1); s.userData={canvas:cvs,ctx,tex,text}; return s;
+    }
 
- // player
- drawPixelBeast(W*0.3,H*0.5,"#4CAF50","#000");
+    function refreshTag(sprite){
+      const {canvas,ctx,tex,text}=sprite.userData; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle='rgba(0,0,0,.55)'; ctx.roundRect(8,10,240,44,16); ctx.fill(); ctx.fillStyle='white'; ctx.font='bold 24px system-ui'; ctx.textAlign='center'; ctx.fillText(text,128,40); tex.needsUpdate=true;
+    }
 
- // enemy
- drawPixelBeast(W*0.6,H*0.5,"#F44336","#000");
+    function initThree(){
+      scene = new THREE.Scene(); scene.background = new THREE.Color(0x8fc8ff); scene.fog = new THREE.Fog(0x8fc8ff, 35, 165);
+      camera = new THREE.PerspectiveCamera(76, innerWidth/innerHeight, .05, 500);
+      renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+      renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
+      renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+      document.body.appendChild(renderer.domElement);
+      clock = new THREE.Clock();
+      player = new THREE.Object3D(); player.position.set(0,4,16); scene.add(player);
+      velocity = new THREE.Vector3();
+      makeWorld(); bindControls();
+      window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+    }
 
- drawUI();
- requestAnimationFrame(loop);
-}
+    function makeWorld(){
+      const hemi = new THREE.HemisphereLight(0xdff6ff,0x203020,1.4); scene.add(hemi);
+      const sun = new THREE.DirectionalLight(0xffffff,2.4); sun.position.set(-28,55,24); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); scene.add(sun);
+      const groundMat = new THREE.MeshStandardMaterial({color:0x4f7247, roughness:.9});
+      const snowMat = new THREE.MeshStandardMaterial({color:0xf1fbff, roughness:.62});
+      const rockMat = new THREE.MeshStandardMaterial({color:0x657284, roughness:.82});
+      const pathMat = new THREE.MeshStandardMaterial({color:0x8c7659, roughness:.95});
 
-loop();
-</script>
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(36,48,6,80), groundMat); base.position.y=-3; base.receiveShadow=true; scene.add(base);
+      const mountain = new THREE.Mesh(new THREE.ConeGeometry(30,68,7,28), rockMat); mountain.position.set(0,30,-45); mountain.rotation.y=.25; mountain.castShadow=true; mountain.receiveShadow=true; scene.add(mountain);
+      const peak = new THREE.Mesh(new THREE.ConeGeometry(11,18,7,10), snowMat); peak.position.set(0,72,-45); peak.rotation.y=.25; peak.castShadow=true; scene.add(peak);
+
+      for(let i=0;i<34;i++){
+        const t=i/33; const ang = t*Math.PI*5.9 + .45; const rad = 21 - t*13;
+        const x = Math.cos(ang)*rad; const z = -45 + Math.sin(ang)*rad; const y = 2 + t*61;
+        const w = 5.8 - t*2.7;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(w,.55,3.1), pathMat);
+        step.position.set(x,y,z); step.rotation.y = -ang + Math.PI/2; step.castShadow=true; step.receiveShadow=true; scene.add(step);
+        if(i%4===0){
+          const flag = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,2.8,8), new THREE.MeshStandardMaterial({color:0x222222}));
+          flag.position.set(x,y+1.45,z); scene.add(flag);
+          const cloth = new THREE.Mesh(new THREE.PlaneGeometry(1.2,.65), new THREE.MeshStandardMaterial({color:i>26?0xffd36e:0x67f5b5, side:THREE.DoubleSide}));
+          cloth.position.set(x+.55,y+2.25,z); cloth.rotation.y=step.rotation.y; scene.add(cloth);
+        }
+      }
+
+      for(let i=0;i<95;i++){
+        const a=Math.random()*Math.PI*2, r=22+Math.random()*80;
+        const x=Math.cos(a)*r, z=Math.sin(a)*r-25;
+        const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.16,.25,2.2,7), new THREE.MeshStandardMaterial({color:0x5b3b25}));
+        trunk.position.set(x, -1.2, z); trunk.castShadow=true; scene.add(trunk);
+        const crown=new THREE.Mesh(new THREE.ConeGeometry(1.25,3.4,8), new THREE.MeshStandardMaterial({color:0x244f38}));
+        crown.position.set(x,.9,z); crown.castShadow=true; scene.add(crown);
+      }
+
+      const skyGeo = new THREE.SphereGeometry(260,32,16);
+      const skyMat = new THREE.MeshBasicMaterial({color:0xbfe9ff, side:THREE.BackSide});
+      scene.add(new THREE.Mesh(skyGeo,skyMat));
+    }
+
+    function bindControls(){
+      document.addEventListener('keydown',e=>keys[e.code]=true);
+      document.addEventListener('keyup',e=>keys[e.code]=false);
+      renderer.domElement.addEventListener('click',()=>{ renderer.domElement.requestPointerLock?.(); started=true; centerHint.style.display='none'; });
+      document.addEventListener('pointerlockchange',()=>{ const locked=document.pointerLockElement===renderer.domElement; centerHint.style.display=locked?'none':'block'; });
+      document.addEventListener('mousemove',e=>{
+        if(document.pointerLockElement!==renderer.domElement) return;
+        yaw -= e.movementX*.0022; pitch -= e.movementY*.002; pitch=Math.max(-1.25,Math.min(1.15,pitch));
+      });
+      setupTouch();
+    }
+
+    function setupTouch(){
+      const joy=$('joy'), knob=$('knob');
+      joy.addEventListener('pointerdown',e=>{ joystick.active=true; joystick.id=e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
+      joy.addEventListener('pointermove',e=>{ if(joystick.active&&e.pointerId===joystick.id) moveJoy(e); });
+      joy.addEventListener('pointerup',()=>{ joystick.active=false; joystick.x=0; joystick.y=0; knob.style.left='43px'; knob.style.top='43px'; });
+      function moveJoy(e){ const b=joy.getBoundingClientRect(); const cx=b.left+b.width/2, cy=b.top+b.height/2; let dx=e.clientX-cx, dy=e.clientY-cy; const d=Math.hypot(dx,dy), max=48; if(d>max){dx=dx/d*max;dy=dy/d*max} joystick.x=dx/max; joystick.y=dy/max; knob.style.left=(43+dx)+'px'; knob.style.top=(43+dy)+'px'; }
+      const hold=(btn,setter)=>{ btn.addEventListener('pointerdown',e=>{setter(true); btn.setPointerCapture(e.pointerId);}); btn.addEventListener('pointerup',()=>setter(false)); btn.addEventListener('pointercancel',()=>setter(false)); };
+      hold($('jumpBtn'),v=>jumpHeld=v); hold($('climbBtn'),v=>climbHeld=v);
+      let lastX=null,lastY=null;
+      window.addEventListener('touchstart',e=>{ started=true; centerHint.style.display='none'; if(e.touches.length){lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;} },{passive:false});
+      window.addEventListener('touchmove',e=>{ if(e.touches.length && e.touches[0].clientX>innerWidth*.42){ const x=e.touches[0].clientX,y=e.touches[0].clientY; if(lastX!==null){ yaw -= (x-lastX)*.006; pitch -= (y-lastY)*.005; pitch=Math.max(-1.25,Math.min(1.15,pitch)); } lastX=x;lastY=y; } },{passive:false});
+    }
+
+    function terrainHeight(x,z){
+      let best = -2;
+      scene.traverse(o=>{
+        if(o.isMesh && o.geometry.type==='BoxGeometry'){
+          const dx=Math.abs(x-o.position.x), dz=Math.abs(z-o.position.z);
+          const lim=4.8;
+          if(dx<lim && dz<lim && o.position.y+.6>best) best=o.position.y+.65;
+        }
+      });
+      const dist=Math.hypot(x,z+45);
+      if(dist<29){ best=Math.max(best, Math.max(-1, 2 + (29-dist)*.14)); }
+      return best;
+    }
+
+    function animate(){
+      requestAnimationFrame(animate);
+      const dt=Math.min(clock.getDelta(),.033);
+      updatePlayer(dt); updateRemotes(dt); renderer.render(scene,camera);
+    }
+
+    function updatePlayer(dt){
+      const forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)*-1);
+      const right = new THREE.Vector3(Math.cos(yaw),0,Math.sin(yaw));
+      let mx=0,mz=0;
+      if(keys.KeyW) mz+=1; if(keys.KeyS) mz-=1; if(keys.KeyD) mx+=1; if(keys.KeyA) mx-=1;
+      mx += joystick.x; mz += -joystick.y;
+      const sprint=keys.ShiftLeft && stamina>5;
+      const speed=sprint?8.4:5.2;
+      const move = new THREE.Vector3().addScaledVector(forward,mz).addScaledVector(right,mx);
+      if(move.length()>1) move.normalize();
+      velocity.x = THREE.MathUtils.lerp(velocity.x, move.x*speed, .16);
+      velocity.z = THREE.MathUtils.lerp(velocity.z, move.z*speed, .16);
+      if(sprint && move.length()>0) stamina=Math.max(0,stamina-24*dt); else stamina=Math.min(100,stamina+14*dt);
+      velocity.y -= 18*dt;
+      const ground = terrainHeight(player.position.x, player.position.z);
+      grounded = player.position.y <= ground + 1.72;
+      const wantsJump = keys.Space || jumpHeld;
+      const wantsClimb = keys.KeyE || climbHeld;
+      if(grounded){ player.position.y=ground+1.72; velocity.y=Math.max(0,velocity.y); if(wantsJump){ velocity.y=8.1; } }
+      if(wantsClimb && stamina>0){ velocity.y=Math.max(velocity.y,4.1); stamina=Math.max(0,stamina-18*dt); }
+      player.position.x += velocity.x*dt; player.position.y += velocity.y*dt; player.position.z += velocity.z*dt;
+      if(player.position.y<-12){ player.position.set(0,4,16); velocity.set(0,0,0); toast('Düştün, kamp alanına döndün.'); }
+      camera.position.copy(player.position); camera.rotation.order='YXZ'; camera.rotation.y=yaw; camera.rotation.x=pitch;
+      staminaBar.style.width=stamina+'%';
+      const top=Math.max(0,Math.round(player.position.y-2)); statusPill.textContent=`Yükseklik: ${top}m  •  Stamina: ${Math.round(stamina)}%`;
+      if(online && performance.now()-lastNet>70){ lastNet=performance.now(); update(playerRef,{x:+player.position.x.toFixed(2),y:+player.position.y.toFixed(2),z:+player.position.z.toFixed(2),ry:+yaw.toFixed(3),top,t:serverTimestamp()}); update(roomRef,{updatedAt:serverTimestamp()}); }
+    }
+
+    function updateRemotes(dt){
+      for(const r of remotePlayers.values()){
+        r.mesh.position.lerp(r.target, Math.min(1,dt*10));
+        r.nameTag.position.set(r.mesh.position.x, r.mesh.position.y+1.55, r.mesh.position.z);
+        refreshTag(r.nameTag);
+      }
+    }
+
+    window.addEventListener('beforeunload',()=>{ if(playerRef) remove(playerRef); });
+  </script>
 </body>
 </html>
